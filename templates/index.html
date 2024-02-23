@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Document Comparison</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+
+        height: 100vh;
+        background-color: #f4f4f4;
+      }
+      #container {
+        width: 800px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      form {
+        margin-top: 20px;
+        display: inline-block;
+        text-align: left;
+      }
+      input,
+      button {
+        margin: 5px 0;
+      }
+      #question {
+        width: 600px;
+
+        height: 10px;
+        border-radius: 9px;
+        padding-inline: 10px;
+        padding: 10px;
+      }
+      .form-group {
+        display: flex;
+        justify-content: center;
+      }
+
+      #upload {
+        background-color: #4caf50; /* Green */
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: 6px;
+        width: 20%;
+        text-align: center;
+        text-decoration: none;
+        font-size: 16px;
+        border-radius: 10px;
+      }
+
+      .question {
+        padding: 5px;
+        width: fit-content;
+        text-align: right;
+        color: whitesmoke;
+        font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+          "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+        background-color: rgba(23, 18, 12, 0.725);
+        border-radius: 10px;
+      }
+
+      .answer {
+        text-align: left;
+        padding: 5px;
+        border-radius: 10px;
+        font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+          "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+        color: white;
+        background-color: #1d6220;
+      }
+
+      #askBtn {
+        background-color: #4caf50;
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: 6px;
+        text-align: center;
+        text-decoration: none;
+        font-size: 16px;
+        border-radius: 5px;
+      }
+      #answer {
+        width: 630px;
+        border: 0px solid Green;
+        border-radius: 10px;
+        padding: 0px;
+        background-color: rgba(27, 17, 5, 0.444);
+        max-height: 500px;
+        overflow-y: auto;
+      }
+
+      #uploadForm {
+        display: flex;
+        justify-content: center;
+        gap: 100px;
+      }
+      #questionForm {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .form-group2 {
+        display: flex;
+        justify-content: center;
+        gap: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container" style="text-align: center">
+      <h2 style="padding-top: 40px">Upload Documents</h2>
+      <form id="uploadForm" method="post" enctype="multipart/form-data">
+        <div class="form-group">
+          <input type="file" name="files" multiple />
+        </div>
+        <br />
+        <input
+          type="button"
+          id="upload"
+          value="Upload"
+          onclick="uploadFiles()"
+        />
+      </form>
+
+      <h2>Chat with AI</h2>
+      <form id="questionForm">
+        <div id="answer"></div>
+        <div class="form-group2">
+          <input
+            type="text"
+            id="question"
+            name="question"
+            placeholder="Enter your question....."
+          />
+          <input
+            type="button"
+            id="askBtn"
+            value="Ask"
+            onclick="askQuestion()"
+          />
+        </div>
+      </form>
+    </div>
+
+    <script defer>
+      function uploadFiles() {
+        var files = document.querySelectorAll('input[type="file"]');
+        console.log(files[0].files, "files");
+        var formData = new FormData();
+
+        for (var i = 0; i < files[0].files.length; i++) {
+          formData.append("files", files[0].files[i]);
+          console.log(files[0].files[i]);
+        }
+        console.log(formData, "formdata");
+
+        fetch("/upload", {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            alert("Files uploaded successfully");
+            console.log(data);
+          })
+          .catch((e) => {
+            alert(e);
+          });
+      }
+      let data = [{ question: "", answer: "" }];
+      function askQuestion() {
+        var getQuestion = document.getElementById("question").value;
+        fetch("/compare_documents", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ question: getQuestion }),
+        })
+          .then((response) => response.json())
+          .then((res) => {
+            const cont = document.getElementById("answer");
+            cont.style.borderWidth = "2px";
+            cont.style.padding = "10px";
+
+            const h2 = document.createElement("h4");
+            h2.innerText = "Ques: " + getQuestion;
+            h2.classList.add("question");
+            const h3 = document.createElement("h4");
+            h3.innerText = "Ans: " + res.output;
+            h3.classList.add("answer");
+
+            cont.appendChild(h2);
+            cont.appendChild(h3);
+
+            data.push({ question: getQuestion, answer: res.output });
+            console.log(data, "dsdsd");
+          });
+      }
+    </script>
+  </body>
+</html>
