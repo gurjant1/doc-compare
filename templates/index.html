@@ -8,7 +8,7 @@
         padding: 0;
         display: flex;
         justify-content: center;
-
+        font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
         height: 100vh;
         background-color: #f4f4f4;
       }
@@ -55,23 +55,25 @@
 
       .question {
         padding: 5px;
-        width: fit-content;
         text-align: right;
         color: whitesmoke;
-        font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
-          "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+        width: fit-content;
         background-color: rgba(23, 18, 12, 0.725);
+        align-self: end;
         border-radius: 10px;
+        margin-bottom: 0px;
+        font-weight: unset;
       }
 
       .answer {
         text-align: left;
         padding: 5px;
         border-radius: 10px;
-        font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
-          "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+        align-self: flex-start;
         color: white;
-        background-color: #1d6220;
+        background-color: #4caf50;
+        margin-top: 6px;
+        font-weight: unset;
       }
 
       #askBtn {
@@ -90,9 +92,11 @@
         border: 0px solid Green;
         border-radius: 10px;
         padding: 0px;
-        background-color: rgba(27, 17, 5, 0.444);
+        background-color: white;
         max-height: 500px;
         overflow-y: auto;
+        display: flex;
+        flex-direction: column;
       }
 
       #uploadForm {
@@ -118,7 +122,7 @@
       <h2 style="padding-top: 40px">Upload Documents</h2>
       <form id="uploadForm" method="post" enctype="multipart/form-data">
         <div class="form-group">
-          <input type="file" name="files" multiple />
+          <input type="file" name="files" multiple accept=".pdf, .csv" />
         </div>
         <br />
         <input
@@ -139,6 +143,7 @@
             name="question"
             placeholder="Enter your question....."
           />
+
           <input
             type="button"
             id="askBtn"
@@ -150,6 +155,15 @@
     </div>
 
     <script defer>
+      let input = document.getElementById("question");
+
+      input.addEventListener("keypress", function (event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          document.getElementById("askBtn").click();
+        }
+      });
+
       function uploadFiles() {
         var files = document.querySelectorAll('input[type="file"]');
         console.log(files[0].files, "files");
@@ -193,6 +207,7 @@
             const h2 = document.createElement("h4");
             h2.innerText = "Ques: " + getQuestion;
             h2.classList.add("question");
+
             const h3 = document.createElement("h4");
             h3.innerText = "Ans: " + res.output;
             h3.classList.add("answer");

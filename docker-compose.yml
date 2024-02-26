@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  doc-comparison:
+    image: python:3.8
+    volumes:
+      - ./requirements.txt:/app/requirements.txt
+      - ./templates:/app/templates
+      - ./.env:/app/.env
+      - ./uploads:/app/uploads
+      - ./app.py:/app/app.py
+    working_dir: /app
+    command: "python3 app.py"
+    env_file:
+      - .env
+    ports:
+      - 8000:8000
+    networks:
+          # - npm_default
+          - default
+networks:
+  # npm_default:
+  #   external: true
+  default:
+    external: false

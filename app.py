@@ -1,5 +1,3 @@
-import pandas as pd
-from werkzeug.utils import secure_filename
 from langchain.agents import Tool
 from langchain.chains import RetrievalQA
 from langchain.text_splitter import CharacterTextSplitter
@@ -14,6 +12,7 @@ from dotenv import load_dotenv
 from langchain.globals import set_debug
 from langchain_community.document_loaders import PyPDFLoader, CSVLoader
 from slugify import slugify
+
 set_debug(True)
 load_dotenv()
 app = Flask(__name__)
@@ -74,8 +73,7 @@ def upload_files():
     for file in files:
         if file["name"].endswith('.pdf'):
             loader = PyPDFLoader(file["path"])
-        elif file["name"].endswith('.xls') or file["name"].endswith('.xlsx'):
-            loader = pd.read_excel(file["path"])
+
         elif file["name"].endswith('.csv'):
             loader = CSVLoader(file["path"])
         else:
