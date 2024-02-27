@@ -9,11 +9,9 @@ from flask import Flask, render_template, request, jsonify
 from typing import Any
 import os
 from dotenv import load_dotenv
-from langchain.globals import set_debug
 from langchain_community.document_loaders import PyPDFLoader, CSVLoader
 from slugify import slugify
 
-set_debug(True)
 load_dotenv()
 app = Flask(__name__)
 
@@ -59,6 +57,7 @@ def upload_files():
     # delete all existing files in uploads folder
     for file in os.listdir("uploads"):
         os.remove(os.path.join("uploads", file))
+
     for file in uploaded_files:
         print(file.filename)
         if file.filename == '':
@@ -80,7 +79,6 @@ def upload_files():
             # Handle unsupported file types
             continue
 
-        # Rest of the code remains the same
         text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
         docs = loader.load_and_split(text_splitter=text_splitter)
         embeddings = OpenAIEmbeddings()
@@ -119,4 +117,4 @@ def compare_documents():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False, port=8000, host="0.0.0.0")

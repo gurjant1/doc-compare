@@ -1,8 +1,7 @@
 #!/bin/bash
-source .env
 
 user="ubuntu"
-host="api.usecasetechnologies.com"
+host="192.168.1.99"
 destination="/home/ubuntu/doc-comparison/"
 
 rsync -avzh --exclude deploy --exclude venv --exclude .git --exclude .vscode --exclude .env --exclude uploads --exclude README.md --exclude  "__pycache__/" . $user@$host:$destination

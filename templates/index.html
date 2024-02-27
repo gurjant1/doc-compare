@@ -115,9 +115,37 @@
         justify-content: center;
         gap: 2px;
       }
+      #loader {
+        position: fixed; /* Position the loader relative to the viewport */
+        top: 50%; /* Center the loader vertically */
+        left: 50%; /* Center the loader horizontally */
+        transform: translate(-50%, -50%); /* Center the loader precisely */
+        display: none; /* Hide the loader by default */
+      }
+
+      .loader-icon {
+        border: 4px solid #f3f3f3; /* Light grey border */
+        border-top: 4px solid #3498db; /* Blue border for the loading animation */
+        border-radius: 50%; /* Create a circular shape */
+        width: 50px; /* Set the width and height of the loader */
+        height: 50px;
+        animation: spin 2s linear infinite; /* Apply a rotation animation */
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
     </style>
   </head>
   <body>
+    <div id="loader">
+      <div class="loader-icon"></div>
+    </div>
     <div id="container" style="text-align: center">
       <h2 style="padding-top: 40px">Upload Documents</h2>
       <form id="uploadForm" method="post" enctype="multipart/form-data">
@@ -174,6 +202,7 @@
           console.log(files[0].files[i]);
         }
         console.log(formData, "formdata");
+        showLoader();
 
         fetch("/upload", {
           method: "POST",
@@ -181,8 +210,8 @@
         })
           .then((response) => response.json())
           .then((data) => {
+            hideLoader();
             alert("Files uploaded successfully");
-            console.log(data);
           })
           .catch((e) => {
             alert(e);
@@ -191,6 +220,8 @@
       let data = [{ question: "", answer: "" }];
       function askQuestion() {
         var getQuestion = document.getElementById("question").value;
+        // Show loader
+        showLoader();
         fetch("/compare_documents", {
           method: "POST",
           headers: {
@@ -200,16 +231,19 @@
         })
           .then((response) => response.json())
           .then((res) => {
+            // Hide loader
+            hideLoader();
+
             const cont = document.getElementById("answer");
             cont.style.borderWidth = "2px";
             cont.style.padding = "10px";
 
             const h2 = document.createElement("h4");
-            h2.innerText = "Ques: " + getQuestion;
+            h2.innerText = getQuestion;
             h2.classList.add("question");
 
             const h3 = document.createElement("h4");
-            h3.innerText = "Ans: " + res.output;
+            h3.innerText = res.output;
             h3.classList.add("answer");
 
             cont.appendChild(h2);
@@ -218,6 +252,15 @@
             data.push({ question: getQuestion, answer: res.output });
             console.log(data, "dsdsd");
           });
+      }
+      function showLoader() {
+        // Show the loader, for example:
+        document.getElementById("loader").style.display = "block";
+      }
+
+      function hideLoader() {
+        // Hide the loader, for example:
+        document.getElementById("loader").style.display = "none";
       }
     </script>
   </body>
