@@ -99,7 +99,6 @@ def upload_files():
         llm=llm,
         verbose=True,
     )
-
     return jsonify({'message': 'Files saved successfully'})
 
 
@@ -112,8 +111,24 @@ def compare_documents():
         return jsonify({"error": "question field 'question' is required."}), 400
 
     result = agent({"input": data['question']})
-
     return jsonify(result)
+
+
+# def is_question_related_to_uploaded_docs(question):
+#     # Get the names and contents of the uploaded documents
+#     files = get_files_from_folder("uploads")
+#     uploaded_docs = []
+#     for file in files:
+#         with open(file['path'], 'r') as f:
+#             uploaded_docs.append({'name': file['name'], 'content': f.read()})
+
+#     # Check if the question is related to the names or contents of the uploaded documents
+#     for doc in uploaded_docs:
+#         print
+#         if doc['name'] in question or doc['content'] in question:
+#             return True
+
+#     return False
 
 
 if __name__ == '__main__':

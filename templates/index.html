@@ -233,7 +233,7 @@
           .then((res) => {
             // Hide loader
             hideLoader();
-
+            document.getElementById("question").value = "";
             const cont = document.getElementById("answer");
             cont.style.borderWidth = "2px";
             cont.style.padding = "10px";
