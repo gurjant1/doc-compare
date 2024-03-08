@@ -1,17 +1,16 @@
 from langchain.agents import Tool
 from langchain.chains import RetrievalQA
 from langchain.text_splitter import CharacterTextSplitter
-from langchain_community.vectorstores import FAISS
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from pydantic import Field, BaseModel
-from langchain.agents import initialize_agent, AgentType
 from flask import Flask, render_template, request, jsonify
-from typing import Any
+from langchain.vectorstores.chroma import Chroma
 import os
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader, CSVLoader
-from slugify import slugify
+from langchain.globals import set_debug
 
+
+set_debug(True)
 load_dotenv()
 app = Flask(__name__)
 
@@ -21,12 +20,13 @@ def index():
     return render_template('index.html')
 
 
-class DocumentInput(BaseModel):
-    question: str = Field()
-
-
 llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-0613",
-                 openai_api_key=os.environ.get("OPENAI_API_KEY"))
+                 openai_api_key=os.environ.get("OPENAI_API_KEY",))
+
+presist_directory = "db"
+embeddings = OpenAIEmbeddings()
+vectordb = Chroma(persist_directory=presist_directory,
+                  embedding_function=embeddings)
 
 
 def get_files_from_folder(folder_path):
@@ -38,10 +38,6 @@ def get_files_from_folder(folder_path):
     return files
 
 
-#  store intialized agent in global variable
-agent = None
-
-
 @app.route('/upload', methods=['POST'])
 def upload_files():
     print(request.files.lists, "list")
@@ -49,8 +45,6 @@ def upload_files():
         return jsonify({'error': 'No files were provided'})
 
     uploaded_files = request.files.getlist('files')
-    print(uploaded_files)
-
     if len(uploaded_files) < 2:
         return jsonify({'error': 'At least two files must be selected'})
 
@@ -64,71 +58,56 @@ def upload_files():
             return jsonify({'error': 'All files must have a filename'})
 
         file.save(os.path.join("uploads", file.filename))
-
-    tools = []
     path = "uploads"
     files = get_files_from_folder(path)
 
     for file in files:
         if file["name"].endswith('.pdf'):
             loader = PyPDFLoader(file["path"])
-
         elif file["name"].endswith('.csv'):
             loader = CSVLoader(file["path"])
         else:
-            # Handle unsupported file types
             continue
 
         text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
         docs = loader.load_and_split(text_splitter=text_splitter)
-        embeddings = OpenAIEmbeddings()
-        retriever = FAISS.from_documents(docs, embeddings).as_retriever()
+        # implement Chroma
+        vectordb = Chroma.from_documents(
+            documents=docs, embedding=embeddings, persist_directory=presist_directory)
+        vectordb.persist()
+    return jsonify({'message': 'Files saved successfully and indexed'})
 
-        tools.append(
-            Tool(
-                args_schema=DocumentInput,
-                name=slugify(file["name"]),
-                description="Retrieve documents from uploaded file",
-                func=RetrievalQA.from_chain_type(llm=llm, retriever=retriever),
-            )
-        )
-    global agent
-    agent = initialize_agent(
-        agent=AgentType.OPENAI_FUNCTIONS,
-        tools=tools,
-        llm=llm,
-        verbose=True,
-    )
-    return jsonify({'message': 'Files saved successfully'})
+
+class Document:
+    def __init__(self, content):
+        self.content = content
+
+    def get_content(self):
+        return self.content
 
 
 @app.route('/compare_documents', methods=['POST'])
 def compare_documents():
     data = request.get_json()
-    print(data, "data")
-
     if 'question' not in data:
         return jsonify({"error": "question field 'question' is required."}), 400
 
-    result = agent({"input": data['question']})
-    return jsonify(result)
+    # Use the retriever to search for the most relevant vectors based on the question provided
+    retriever = vectordb.as_retriever(kwargs={"k": 3},)
+    relevant_documents = retriever.get_relevant_documents(data["question"],)
 
+    if relevant_documents is None or len(relevant_documents) == 0:
+        return jsonify({"error": "No relevant documents found"}), 404
 
-# def is_question_related_to_uploaded_docs(question):
-#     # Get the names and contents of the uploaded documents
-#     files = get_files_from_folder("uploads")
-#     uploaded_docs = []
-#     for file in files:
-#         with open(file['path'], 'r') as f:
-#             uploaded_docs.append({'name': file['name'], 'content': f.read()})
+    # Use the QA chain to answer the question
+    qa_chain = RetrievalQA.from_chain_type(
+        llm=llm, chain_type="stuff", retriever=retriever, return_source_documents=True,)
+    query = data["question"]
+    answer = qa_chain(
+        {"query": query,  "source_documents": relevant_documents, "return_only_outputs": True, })
 
-#     # Check if the question is related to the names or contents of the uploaded documents
-#     for doc in uploaded_docs:
-#         print
-#         if doc['name'] in question or doc['content'] in question:
-#             return True
-
-#     return False
+    print("Answer: ", answer["result"])
+    return jsonify({"output": answer["result"]}), 200
 
 
 if __name__ == '__main__':
