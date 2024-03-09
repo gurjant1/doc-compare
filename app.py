@@ -1,4 +1,3 @@
-from langchain.agents import Tool
 from langchain.chains import RetrievalQA
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -8,7 +7,7 @@ import os
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader, CSVLoader
 from langchain.globals import set_debug
-
+from langchain.prompts import PromptTemplate
 
 set_debug(True)
 load_dotenv()
@@ -78,34 +77,37 @@ def upload_files():
     return jsonify({'message': 'Files saved successfully and indexed'})
 
 
-class Document:
-    def __init__(self, content):
-        self.content = content
-
-    def get_content(self):
-        return self.content
-
-
 @app.route('/compare_documents', methods=['POST'])
 def compare_documents():
     data = request.get_json()
     if 'question' not in data:
         return jsonify({"error": "question field 'question' is required."}), 400
 
-    # Use the retriever to search for the most relevant vectors based on the question provided
-    retriever = vectordb.as_retriever(kwargs={"k": 3},)
+    retriever = vectordb.as_retriever(kwargs={"k": 2},)
     relevant_documents = retriever.get_relevant_documents(data["question"],)
 
     if relevant_documents is None or len(relevant_documents) == 0:
         return jsonify({"error": "No relevant documents found"}), 404
 
-    # Use the QA chain to answer the question
+
+# Use the QA chain to answer the question
     qa_chain = RetrievalQA.from_chain_type(
-        llm=llm, chain_type="stuff", retriever=retriever, return_source_documents=True,)
+        llm=llm,
+        chain_type="stuff",
+        retriever=retriever,
+        return_source_documents=True,
+        chain_type_kwargs={"prompt": PromptTemplate(
+            template=f"Don't use general knowledge from outside the context. Answer in the context of the provided documents: {data['question']} \n Context: {{context}}",
+            input_variables=["question", "context"],
+        )},
+    )
+
+
+# ...
     query = data["question"]
     answer = qa_chain(
-        {"query": query,  "source_documents": relevant_documents, "return_only_outputs": True, })
-
+        {"query": query, "source_documents": relevant_documents},
+    )
     print("Answer: ", answer["result"])
     return jsonify({"output": answer["result"]}), 200
 
