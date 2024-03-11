@@ -22,6 +22,11 @@ def index():
 llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-0613",
                  openai_api_key=os.environ.get("OPENAI_API_KEY",))
 
+# if existing db folder exists, use it, otherwise create a new one
+if os.path.exists("db"):
+    pass
+else:
+    os.mkdir("db")
 presist_directory = "db"
 embeddings = OpenAIEmbeddings()
 vectordb = Chroma(persist_directory=presist_directory,
@@ -83,12 +88,12 @@ def compare_documents():
     if 'question' not in data:
         return jsonify({"error": "question field 'question' is required."}), 400
 
-    retriever = vectordb.as_retriever(kwargs={"k": 2},)
-    relevant_documents = retriever.get_relevant_documents(data["question"],)
+    retriever = vectordb.as_retriever()
+    relevant_documents = retriever.get_relevant_documents(
+        data["question"], kwargs={"k": 2})
 
-    if relevant_documents is None or len(relevant_documents) == 0:
-        return jsonify({"error": "No relevant documents found"}), 404
-
+    print("Relevant documents: ", relevant_documents)
+    print("Question: ", data["question"])
 
 # Use the QA chain to answer the question
     qa_chain = RetrievalQA.from_chain_type(
@@ -97,13 +102,10 @@ def compare_documents():
         retriever=retriever,
         return_source_documents=True,
         chain_type_kwargs={"prompt": PromptTemplate(
-            template=f"Don't use general knowledge from outside the context. Answer in the context of the provided documents: {data['question']} \n Context: {{context}}",
+            template="Please answer the following question based solely on the information provided in the documents. Do not use any external or general knowledge sources. Question: {question} \n Context: {context}",
             input_variables=["question", "context"],
         )},
     )
-
-
-# ...
     query = data["question"]
     answer = qa_chain(
         {"query": query, "source_documents": relevant_documents},
