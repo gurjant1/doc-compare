@@ -248,7 +248,7 @@
 
             cont.appendChild(h2);
             cont.appendChild(h3);
-
+            scrollBottom();
             data.push({ question: getQuestion, answer: res.output });
             console.log(data, "dsdsd");
           });
@@ -261,6 +261,11 @@
       function hideLoader() {
         // Hide the loader, for example:
         document.getElementById("loader").style.display = "none";
+      }
+
+      function scrollBottom() {
+        const answerDiv = document.getElementById("answer");
+        answerDiv.scrollTop = answerDiv.scrollHeight;
       }
     </script>
   </body>
